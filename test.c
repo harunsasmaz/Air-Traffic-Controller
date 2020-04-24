@@ -52,35 +52,15 @@ void* ThreadEntry( void* id )
 
 int main( int argc, char** argv )
 {
-  puts( "[thread main] starting" );
+    struct timeval tp;
+    struct timespec ts;
+    
+    gettimeofday(&tp, NULL);
+    ts.tv_sec  = tp.tv_sec;
+    ts.tv_nsec = tp.tv_usec * 1000;
+    ts.tv_sec += 100+2;
 
-  pthread_t threads[NUMTHREADS];
+    printf("%lld, %.9ld", (long long)ts.tv_sec, ts.tv_nsec);
 
-  for( int t=0; t<NUMTHREADS; t++ )
-    pthread_create( &threads[t], NULL, ThreadEntry, (void*)(long)t );
-
-  // we're going to test "done" so we need the mutex for safety
-  pthread_mutex_lock( &mutex );
-
-  // are the other threads still busy?
-  while( done < NUMTHREADS )
-    {
-      printf( "[thread main] done is %d which is < %d so waiting on cond\n", 
-	      done, (int)NUMTHREADS );
-      
-      /* block this thread until another thread signals cond. While
-	 blocked, the mutex is released, then re-aquired before this
-	 thread is woken up and the call returns. */ 
-      pthread_cond_wait( & cond, & mutex ); 
-      
-      puts( "[thread main] wake - cond was signalled." ); 
-      
-      /* we go around the loop with the lock held */
-    }
-  
-  printf( "[thread main] done == %d so everyone is done\n", (int)NUMTHREADS );
-  
-  pthread_mutex_unlock( & mutex );
-  
-  return 0;
+    return 0;
 }
