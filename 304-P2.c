@@ -73,7 +73,7 @@ void log_header(){
         fprintf(stderr, "cannot open log file\n");
     }
     
-    fprintf(file, "Plane ID    Status    Request Time   Runway Time   Turnaround Time\n -----------------------------------------------------------------\n");
+    fprintf(file, "Plane ID    Status    Request Time   Runway Time   Turnaround Time\n------------------------------------------------------------------\n");
     fclose(file);
 }
 
@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
             print_queue(landing);
             printf("\n");
             printf("At %d sec departing: ", time_passed);
-            printQueue(departing);
+            print_queue(departing);
             printf("\n");
         }
 
@@ -350,6 +350,19 @@ int main(int argc, char* argv[])
         
         pthread_sleep(t);
     }
+
+    for(int i = 0; i < plane_id; i++){
+        pthread_join(planes[i],NULL);
+    }
+
+    pthread_join(tower,NULL);
+
+    pthread_mutex_destroy(&runway_mutex);
+    pthread_cond_destroy(&runway_cond);
+
+    free(departing);
+    free(landing);
+    free(emergency);
 
     return 0;
 }
