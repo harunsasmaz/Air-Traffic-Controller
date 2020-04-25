@@ -40,18 +40,6 @@ int pthread_sleep (int seconds)
 
 }
 
-static const double kMicro = 1.0e-6;
-double get_time() {
-	struct timeval TV;
-	struct timezone TZ;
-	const int RC = gettimeofday(&TV, &TZ);
-	if(RC == -1) {
-		printf("ERROR: Bad call to gettimeofday\n");
-		return(-1);
-	}
-	return( ((double)TV.tv_sec) + kMicro * ((double)TV.tv_usec) );
-}
-
 void log(int plane_id, char* status, int request_time, int runway_time, int turnaround_time){
 
     FILE* file;
@@ -79,7 +67,7 @@ void log_header(){
 
 typedef struct Plane {
     int ID;
-    int arrival_time;
+    time_t arrival_time;
     pthread_mutex_t lock;
     pthread_cond_t cond;
 }Plane;
@@ -185,7 +173,7 @@ void *landing_func(void* ID)
     int plane_id = (int)ID;
     Plane plane;
     plane.ID = plane_id;
-    plane.arrival_time = (int)get_time();
+    plane.arrival_time = time(NULL);
     pthread_mutex_init(&plane.lock, NULL);
     pthread_cond_init(&plane.cond, NULL);
     all_planes[plane_id] = plane;
@@ -204,7 +192,7 @@ void *landing_func(void* ID)
 
     time_t landing_log = time(NULL);
     if(landing_log < end_time){
-        char* status = (emergency_check) ? "E" : "L";
+        char* status = (emergency_check == 1) ? "E" : "L";
         log(plane_id, status, (int)(plane.arrival_time - start_time), (int)(landing_log - start_time), (int)(landing_log - plane.arrival_time));
         emergency_check = 0;
     }
@@ -219,7 +207,7 @@ void *departing_func(void* ID)
     int plane_id = (int)ID;
     Plane plane;
     plane.ID = plane_id;
-    plane.arrival_time = (int)get_time();
+    plane.arrival_time = time(NULL);
     pthread_mutex_init(&plane.lock, NULL);
     pthread_cond_init(&plane.cond, NULL);
     all_planes[plane_id] = plane;
@@ -234,7 +222,7 @@ void *departing_func(void* ID)
 
     time_t departing_log = time(NULL);
     if(departing_log < end_time)
-        log(plane_id, "L", (int)(plane.arrival_time - start_time), (int)(departing_log - start_time), (int)(departing_log - plane.arrival_time));
+        log(plane_id, "D", (int)(plane.arrival_time - start_time), (int)(departing_log - start_time), (int)(departing_log - plane.arrival_time));
 
     pthread_mutex_unlock(&all_planes[plane_id].lock);
     pthread_mutex_unlock(&runway_mutex);
@@ -328,9 +316,11 @@ int main(int argc, char* argv[])
     ts.tv_nsec = tv.tv_usec * 1000;
     ts.tv_sec += simulation_time + 2 * t;
 
-    int plane_id = 0;
-    pthread_create(&(planes[++plane_id]), NULL, landing_func, (void*)plane_id);
-    pthread_create(&(planes[++plane_id]), NULL, departing_func, (void*)plane_id);
+    int plane_id = 1;
+    pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
+    plane_id++;
+    pthread_create(&(planes[plane_id]), NULL, departing_func, (void*)plane_id);
+    plane_id++;
 
     time_t current_time = time(NULL);
     while(current_time < end_time)
@@ -347,23 +337,25 @@ int main(int argc, char* argv[])
             printf("\n");
         }
 
-        if(time_passed % 39 == 0 && time_passed > 0)
+        if(time_passed % 40 == 0 && time_passed > 0)
         {
             emergency_check = 1;
-            pthread_create(&(planes[++plane_id]), NULL, landing_func, (void*)plane_id);
+            pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
         } 
         else 
         {
             if(r < prob){
-                pthread_create(&(planes[++plane_id]), NULL, landing_func, (void*)plane_id);
+                pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
+                plane_id++;
             }
             else {
-                pthread_create(&(planes[++plane_id]), NULL, departing_func, (void*)plane_id);
+                pthread_create(&(planes[plane_id]), NULL, departing_func, (void*)plane_id);
+                plane_id++;
             }
         }
         
-        current_time = time(NULL);
         pthread_sleep(t);
+        current_time = time(NULL);
     }
 
     for(int i = 0; i < plane_id; i++){
