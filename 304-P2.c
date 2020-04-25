@@ -180,7 +180,7 @@ void *landing_func(void* ID)
 
 
     pthread_mutex_lock(&runway_mutex);
-    pthread_mutex_lock(&all_planes[plane_id].lock);
+    pthread_mutex_lock(&(all_planes[plane_id].lock));
 
     
     if(emergency_check)
@@ -197,7 +197,7 @@ void *landing_func(void* ID)
         emergency_check = 0;
     }
 
-    pthread_mutex_unlock(&all_planes[plane_id].lock);
+    pthread_mutex_unlock(&(all_planes[plane_id].lock));
     pthread_mutex_unlock(&runway_mutex);
     pthread_exit(NULL);
 };
@@ -214,7 +214,7 @@ void *departing_func(void* ID)
 
     
     pthread_mutex_lock(&runway_mutex);
-    pthread_mutex_lock(&plane.lock);
+    pthread_mutex_lock(&(all_planes[plane_id].lock));
 
     enqueue(departing, plane);
 
@@ -224,7 +224,7 @@ void *departing_func(void* ID)
     if(departing_log < end_time)
         log(plane_id, "D", (int)(plane.arrival_time - start_time), (int)(departing_log - start_time), (int)(departing_log - plane.arrival_time));
 
-    pthread_mutex_unlock(&all_planes[plane_id].lock);
+    pthread_mutex_unlock(&(all_planes[plane_id].lock));
     pthread_mutex_unlock(&runway_mutex);
     pthread_exit(NULL);
 };
@@ -262,7 +262,6 @@ void *air_control()
     }
     
     pthread_exit(NULL);
-    return NULL;
 };
 
 int main(int argc, char* argv[])
@@ -305,7 +304,7 @@ int main(int argc, char* argv[])
     srand(seed);
     time(&start_time);
     end_time = start_time + simulation_time;
-    end_time++;
+    end_time += 2;
 
     pthread_t planes[max_planes];
     pthread_t tower;
@@ -317,9 +316,9 @@ int main(int argc, char* argv[])
     ts.tv_sec += simulation_time + 2 * t;
 
     int plane_id = 1;
-    pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
-    plane_id++;
     pthread_create(&(planes[plane_id]), NULL, departing_func, (void*)plane_id);
+    plane_id++;
+    pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
     plane_id++;
 
     time_t current_time = time(NULL);
@@ -337,7 +336,7 @@ int main(int argc, char* argv[])
             printf("\n");
         }
 
-        if(time_passed % 40 == 0 && time_passed > 0)
+        if(time_passed % 39 == 0 && time_passed > 0)
         {
             emergency_check = 1;
             pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
@@ -354,8 +353,8 @@ int main(int argc, char* argv[])
             }
         }
         
-        pthread_sleep(t);
         current_time = time(NULL);
+        pthread_sleep(t);
     }
 
     for(int i = 0; i < plane_id; i++){
