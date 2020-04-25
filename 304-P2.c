@@ -99,7 +99,7 @@ Queue* createQueue(int max_planes)
     queue->capacity = max_planes;
     queue->size = 0;
     queue->front = 0;
-    queue->rear = -1;
+    queue->rear = 0;
     queue->planes = (Plane*) malloc(max_planes * sizeof(Plane));
 
     return queue;
@@ -127,7 +127,7 @@ void enqueue(Queue* queue, Plane plane)
             queue->rear = queue->rear + 1;
             if(queue->rear == queue->capacity)
             {
-                    queue->rear = 0;
+                queue->rear = 0;
             }
             queue->planes[queue->rear] = plane;
     }
@@ -250,7 +250,7 @@ void *air_control()
             pthread_cond_signal(&all_planes[id].cond);
         } else {
 
-            if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 0 && landing->size < 7))
+            if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 0 && landing->size > 7))
             {
                 int id = dequeue(landing);
                 pthread_cond_signal(&all_planes[id].cond);
@@ -273,7 +273,7 @@ void *air_control()
 };
 
 int main(int argc, char* argv[])
-{
+
     float prob = 0.5;
     int seed = 0;
     int print = 25;
@@ -343,7 +343,7 @@ int main(int argc, char* argv[])
             if(r <= prob){
                 pthread_create(&(planes[++plane_id]), NULL, landing_func, (void*)plane_id);
             }
-            if(r <= 1 - prob){
+            else { //if(r <= 1 - prob){
                 pthread_create(&(planes[++plane_id]), NULL, departing_func, (void*)plane_id);
             }
         }
