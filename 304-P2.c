@@ -309,6 +309,7 @@ int main(int argc, char* argv[])
     pthread_t tower;
     pthread_create(&tower, NULL, air_control, NULL);
 
+    // for pthread_cond_timedwait
     gettimeofday(&tv, NULL);
     ts.tv_sec  = tv.tv_sec;
     ts.tv_nsec = tv.tv_usec * 1000;
