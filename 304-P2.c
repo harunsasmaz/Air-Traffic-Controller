@@ -162,7 +162,7 @@ void print_queue(Queue* queue)
 
 Queue *landing, *departing, *emergency;
 Plane all_planes[MAX_PLANES];
-pthread_mutex_t runway_mutex;
+pthread_mutex_t runway_mutex, start_mutex;
 pthread_cond_t  runway_cond;
 time_t start_time, end_time;
 int simulation_time;
@@ -182,12 +182,13 @@ void *landing_func(void* ID)
 
 
     pthread_mutex_lock(&runway_mutex);
-
     if(emergency_check)
         enqueue(emergency, plane);
     else
         enqueue(landing, plane);
 
+    if(plane_id == 1)
+        pthread_cond_signal(&runway_cond);
     pthread_mutex_unlock(&runway_mutex);
 
     pthread_cond_timedwait(&all_planes[plane_id].cond, &(all_planes[plane_id].lock), &ts);
@@ -215,6 +216,8 @@ void *departing_func(void* ID)
 
     pthread_mutex_lock(&runway_mutex);
     enqueue(departing, plane);
+    if(plane_id == 1)
+        pthread_cond_signal(&runway_cond);
     pthread_mutex_unlock(&runway_mutex);
 
     pthread_cond_timedwait(&all_planes[plane_id].cond, &(all_planes[plane_id].lock), &ts);
@@ -229,6 +232,7 @@ void *departing_func(void* ID)
 
 void *air_control()
 {   
+    pthread_cond_wait(&runway_cond, &start_mutex);
     time_t current_time = time(NULL);
     while(current_time < end_time)
     {   
@@ -246,14 +250,13 @@ void *air_control()
                 id = dequeue(departing);
             }
         }
-        pthread_mutex_unlock(&runway_mutex);
 
         pthread_cond_signal(&all_planes[id].cond);
-
+        pthread_mutex_unlock(&runway_mutex);
         current_time = time(NULL);
         pthread_sleep(2 * t);
     }
-    
+    pthread_mutex_unlock(&start_mutex);
     pthread_exit(NULL);
 };
 
@@ -292,6 +295,7 @@ int main(int argc, char* argv[])
     log_header();
 
     pthread_mutex_init(&runway_mutex, NULL);
+    pthread_mutex_init(&start_mutex, NULL);
     pthread_cond_init(&runway_cond, NULL);
 
     srand(seed);
