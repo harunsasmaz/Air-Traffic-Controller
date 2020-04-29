@@ -233,16 +233,17 @@ void *departing_func(void* ID)
 void *air_control()
 {   
     pthread_cond_wait(&runway_cond, &start_mutex);
+    int id, waiting;
     time_t current_time = time(NULL);
     while(current_time < end_time)
     {   
-        int waiting = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
-        int id;
+        waiting = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
+        id;
         pthread_mutex_lock(&runway_mutex);
         if(emergency->size > 0){
             id = dequeue(emergency);
         } else {
-            if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 0 && landing->size > 7)){
+            if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 10)){
                 id = dequeue(landing);
             } else if(landing->size == 0 && departing->size > 0){
                 id = dequeue(departing);
@@ -263,7 +264,7 @@ void *air_control()
 int main(int argc, char* argv[])
 {
     float prob = 0.5;
-    int seed = 1;
+    int seed = time(NULL);
     int print = 25;
     int max_planes = 100;
     
