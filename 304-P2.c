@@ -121,16 +121,16 @@ void enqueue(Queue* queue, Plane plane)
     }
 };
 
-int dequeue(Queue* queue)
+Plane dequeue(Queue* queue)
 {   
-    int result = -1;
+    Plane result;
     if(queue->size == 0)
     {
         printf("Queue is empty\n");
     }
     else
     {
-        result = queue->planes[queue->front].ID;
+        result = queue->planes[queue->front];
         queue->size = queue->size - 1;
         queue->front = queue->front + 1;
         if(queue->front == queue->capacity)
@@ -182,22 +182,24 @@ void *landing_func(void* ID)
 
 
     pthread_mutex_lock(&runway_mutex);
-    if(emergency_check)
+    if(emergency_check){
         enqueue(emergency, plane);
-    else
+        emergency_check = 0;
+    } else {
         enqueue(landing, plane);
+    }
 
     if(plane_id == 1)
         pthread_cond_signal(&runway_cond);
     pthread_mutex_unlock(&runway_mutex);
 
     pthread_cond_timedwait(&all_planes[plane_id].cond, &(all_planes[plane_id].lock), &ts);
-    time_t landing_log = time(NULL);
-    if(landing_log < end_time){
-        char* status = (emergency_check == 1) ? "E" : "L";
-        log(plane_id, status, (int)(plane.arrival_time - start_time), (int)(landing_log - start_time), (int)(landing_log - plane.arrival_time));
-        emergency_check = 0;
-    }
+    // time_t landing_log = time(NULL);
+    // if(landing_log < end_time){
+    //     char* status = (emergency_check == 1) ? "E" : "L";
+    //     log(plane_id, status, (int)(plane.arrival_time - start_time), (int)(landing_log - start_time), (int)(landing_log - plane.arrival_time));
+    //     emergency_check = 0;
+    // }
 
     pthread_mutex_unlock(&(all_planes[plane_id].lock));
     pthread_exit(NULL);
@@ -220,9 +222,9 @@ void *departing_func(void* ID)
     pthread_mutex_unlock(&runway_mutex);
 
     pthread_cond_timedwait(&all_planes[plane_id].cond, &(all_planes[plane_id].lock), &ts);
-    time_t departing_log = time(NULL);
-    if(departing_log < end_time)
-        log(plane_id, "D", (int)(plane.arrival_time - start_time), (int)(departing_log - start_time), (int)(departing_log - plane.arrival_time));
+    // time_t departing_log = time(NULL);
+    // if(departing_log < end_time + 1)
+    //     log(plane_id, "D", (int)(plane.arrival_time - start_time), (int)(departing_log - start_time), (int)(departing_log - plane.arrival_time));
 
     pthread_mutex_unlock(&(all_planes[plane_id].lock));
     pthread_exit(NULL);
@@ -236,20 +238,26 @@ void *air_control()
     while(current_time < end_time)
     {   
         pthread_mutex_lock(&runway_mutex);
+        Plane plane;
         waiting = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
+        time_t printing = time(NULL);
         if(emergency->size > 0){
-            id = dequeue(emergency);
+            plane = dequeue(emergency);
+            log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
         } else {
             if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 10)){
-                id = dequeue(landing);
+                plane = dequeue(landing);
+                log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             } else if(landing->size == 0 && departing->size > 0){
-                id = dequeue(departing);
+                plane = dequeue(departing);
+                log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             } else if((departing->size > 0 && waiting >= 10) || (departing->size > 0 && departing->size >= 5)){
-                id = dequeue(departing);
+                plane = dequeue(departing);
+                log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             }
         }
 
-        pthread_cond_signal(&(all_planes[id].cond));
+        pthread_cond_signal(&(all_planes[plane.ID].cond));
         pthread_mutex_unlock(&runway_mutex);
         pthread_sleep(2 * t);
         current_time = time(NULL);
@@ -319,17 +327,22 @@ int main(int argc, char* argv[])
     pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
     plane_id++;
 
+    pthread_sleep(t);
+
     while(current_time < end_time)
     {   
         float r = (float)rand()/RAND_MAX;
         int time_passed = (int)(current_time - start_time);
 
-        if(time_passed % print == 0 && time_passed > 0){
-            printf("\nAt %d sec landing: ", time_passed);
+        if(time_passed >= print){
+            printf("At %d sec:\nlanding: ", time_passed);
             print_queue(landing);
             printf("\n");
-            printf("At %d sec departing: ", time_passed);
+            printf("departing: ");
             print_queue(departing);
+            printf("\n");
+            printf("emergency: ");
+            print_queue(emergency);
             printf("\n");
         }
 
@@ -350,6 +363,7 @@ int main(int argc, char* argv[])
                 plane_id++;
             }
         }
+
         pthread_sleep(t);
         current_time = time(NULL);
     }
