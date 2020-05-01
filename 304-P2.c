@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
                 pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
                 plane_id++;
             }
-            else {
+            if(r < 1 - prob){
                 pthread_create(&(planes[plane_id]), NULL, departing_func, (void*)plane_id);
                 plane_id++;
             }
