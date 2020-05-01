@@ -50,7 +50,7 @@ void log(int plane_id, char* status, int request_time, int runway_time, int turn
         fprintf(stderr, "cannot open log file\n");
     }
 
-    fprintf(file, " %d\t\t\t\t%s\t\t\t\t%d\t\t\t\t%d\t\t\t\t%d\n",plane_id,status,request_time,runway_time,turnaround_time);
+    fprintf(file, " %d\t\t\t%s\t\t\t%d\t\t\t%d\t\t\t\t%d\n",plane_id,status,request_time,runway_time,turnaround_time);
     fclose(file);
 }
 
@@ -288,7 +288,7 @@ void *air_control()
 int main(int argc, char* argv[])
 {
     float prob = 0.5; // landing plane probability, p.
-    int seed = time(NULL); // random seed
+    int seed = time(NULL); // random seed, initially set to the current time.
     int print = 25; // time to start printing queues on console.
     int max_planes = 100; // capacity for queues.
     
@@ -328,7 +328,7 @@ int main(int argc, char* argv[])
     srand(seed);
     time(&start_time);
     end_time = start_time + simulation_time;
-    end_time += 2; // for the last iteration
+    end_time++; // for the last iteration, add 1.
 
     // create place for plane threads and start ATC thread.
     pthread_t planes[max_planes];
