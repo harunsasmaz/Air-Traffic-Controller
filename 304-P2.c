@@ -312,7 +312,7 @@ int main(int argc, char* argv[])
 	}
 
     // initialize queues.
-    max_planes = simulation_time + 2;
+    max_planes = simulation_time * 2 + 2;
     emergency = createQueue(max_planes);
     landing = createQueue(max_planes);
     departing = createQueue(max_planes);
