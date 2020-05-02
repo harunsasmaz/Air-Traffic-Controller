@@ -26,7 +26,7 @@
 
 ## Implementation
 
-All parts are working fine, however due to type conversion to integers, some floating points are lost. That results in 1 second runway time in some flights. That information is misleading but program does work properly. Also, in emergency flights sometimes it seems like it comes one second early, again it is due to floating points to integer conversion.
+All parts are working fine, However, the global Plane array all_planes is initialized with a constant size, MAX_PLANES macro variable. If you set the simulation time more than 250, please update that variable to avoid any segmentation fault.
 
 Landing function first creates a plane, and initializes it. We have a global plane array to be able reach their lock from ATC thread. Then it acquires the global mutex lock to be able to enqueue itself to the related queue, either landing or emergency. If plane's id is 1, i.e. the first plane, it sends a signal to ATC thread to start accepting planes. After that, it waits for its turn to be able to use the runway, this waiting is achieved by pthread_cond_timedwait and the cond variable inside plane. pthread_cond_timedwaid is used to terminate threads when simulation time is over. After waiting is done, the thread releases its lock and exit.
 
