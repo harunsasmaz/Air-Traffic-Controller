@@ -7,7 +7,7 @@
 
 #define MATCH(s) (!strcmp(argv[ac], (s)))
 #define MAX_PLANES 500
-#define LOG_FILE "planes.log"
+#define LOG_FILE "planes2.log"
 #define t 1
 
 // given sleep function.
@@ -244,7 +244,7 @@ void *air_control()
 {   
     // wait for signal from the first plane.
     pthread_cond_wait(&runway_cond, &start_mutex);
-    int waiting;
+    int waiting_d, waiting_l;
     time_t current_time = time(NULL);
     while(current_time < end_time)
     {   
@@ -252,22 +252,19 @@ void *air_control()
         pthread_mutex_lock(&runway_mutex);
         Plane plane; // plane to be dequeued
         // waiting time of the top plane in departing queue.
-        waiting = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
+        //waiting_d = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
+        //waiting_l = (landing->size > 0) ? (int)(current_time - top(landing).arrival_time) : 0;
         time_t printing = time(NULL); // current time for log, called for being precise.
         if(emergency->size > 0){ // if there is a plane in emergency queue, give priority.
             plane = dequeue(emergency);
             log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
         } else {
             // if less than 5 departing planes and waiting less than 10 seconds or more than 10 landing planes
-            if((landing->size > 0 && waiting < 10 && departing->size < 5) || (landing->size > 10)){
+            if((landing->size > 0 && departing->size < 5) || (landing->size >= 15)){
                 plane = dequeue(landing);
                 log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             // if there is no landing plane
-            } else if(landing->size == 0 && departing->size > 0){
-                plane = dequeue(departing);
-                log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
-            // if waiting more than 10 seconds or more than 5 departing plane.
-            } else if((departing->size > 0 && waiting >= 10) || (departing->size > 0 && departing->size >= 5)){
+            } else if((departing->size > 0 && landing->size < 15) || (departing->size >= 5)){
                 plane = dequeue(departing);
                 log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             }
