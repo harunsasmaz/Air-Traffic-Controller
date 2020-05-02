@@ -50,7 +50,7 @@ void log(int plane_id, char* status, int request_time, int runway_time, int turn
         fprintf(stderr, "cannot open log file\n");
     }
 
-    fprintf(file, " %d\t\t\t%s\t\t\t%d\t\t\t%d\t\t\t\t%d\n",plane_id,status,request_time,runway_time,turnaround_time);
+    fprintf(file, " %d\t\t\t\t%s\t\t\t%d\t\t\t%d\t\t\t\t%d\n",plane_id,status,request_time,runway_time,turnaround_time);
     fclose(file);
 }
 
@@ -357,7 +357,8 @@ int main(int argc, char* argv[])
     {   
         float r = (float)rand()/RAND_MAX;
         int time_passed = (int)(current_time - start_time);
-
+        
+        // start printing the queues on console
         if(time_passed >= print){
             printf("At %d sec:\nlanding: ", time_passed);
             print_queue(landing);
@@ -368,23 +369,26 @@ int main(int argc, char* argv[])
         }
         // check if the time for emergency plane comes.
         if(time_passed % 40 == 0 && time_passed > 0)
-        {
+        {   
+            // check variable for emergency queue
             emergency_check = 1;
             pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
             plane_id++;
         } 
         else 
-        {
+        {   
+            // probability for landing plane
             if(r < prob){
                 pthread_create(&(planes[plane_id]), NULL, landing_func, (void*)plane_id);
                 plane_id++;
             }
+            // probability for departing plane
             if(r < 1 - prob){
                 pthread_create(&(planes[plane_id]), NULL, departing_func, (void*)plane_id);
                 plane_id++;
             }
         }
-
+        // wait for t seconds to continue
         pthread_sleep(t);
         current_time = time(NULL);
     }
