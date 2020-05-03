@@ -260,11 +260,11 @@ void *air_control()
             log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
         } else {
             // if less than 5 departing planes and waiting less than 10 seconds or more than 10 landing planes
-            if((landing->size > 0 && departing->size < 5) || (landing->size >= 15)){
+            if((landing->size >= departing->size) && (landing->size != 0)){
                 plane = dequeue(landing);
                 log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             // if there is no landing plane
-            } else if((departing->size > 0 && landing->size < 15) || (departing->size >= 5)){
+            } else if((departing->size > landing->size) && (departing->size != 0)){
                 plane = dequeue(departing);
                 log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
             }
