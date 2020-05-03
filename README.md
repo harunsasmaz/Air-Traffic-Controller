@@ -16,8 +16,11 @@
 ## Important Global Variables
 
 > Queue landing, departing, emergency
+
 > pthread_mutex_t runway_lock, start_lock
+
 > pthread_cond_t runway_cond
+
 > Plane all_planes[]
 
 ## Main functions
