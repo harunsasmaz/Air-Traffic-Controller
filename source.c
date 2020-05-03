@@ -251,24 +251,24 @@ void *air_control()
         pthread_mutex_lock(&runway_mutex);
         Plane plane; // plane to be dequeued
         
-        time_t printing = time(NULL); // current time for log, called for being precise.
+        time_t log_time = time(NULL); // current time for log, called for being precise.
         if(emergency->size > 0){ // if there is a plane in emergency queue, give priority.
             plane = dequeue(emergency);
-            log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
+            log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(log_time - start_time), (int)(log_time - plane.arrival_time));
         } else {
             // if landing queue size is larger than departing queue size, then pop from landing queue.
             if((landing->size >= departing->size) && (landing->size != 0)){
                 plane = dequeue(landing);
-                log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
+                log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(log_time - start_time), (int)(log_time - plane.arrival_time));
             // Otherwise, pop from departing queue.
             } else if((departing->size > landing->size) && (departing->size != 0)){
                 plane = dequeue(departing);
-                log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
+                log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(log_time - start_time), (int)(log_time - plane.arrival_time));
             }
         }
         // signal the plane after log its information.
         pthread_cond_signal(&(all_planes[plane.ID].cond));
-        // release the lock and sleep for 2 seconds.
+        // release the lock and sleep for 2t seconds.
         pthread_mutex_unlock(&runway_mutex);
         pthread_sleep(2 * t);
         current_time = time(NULL);
