@@ -25,7 +25,11 @@
 
 > landing_func(), departing_func(), air_control()
 
-## Tested command for the results
+## Run
+
+> gcc source.c -o out
+
+## Test command for the results
 
 > ./out -p 0.5 -s 100 -seed 12345 -n 10
 
