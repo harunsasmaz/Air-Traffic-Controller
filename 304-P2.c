@@ -7,7 +7,7 @@
 
 #define MATCH(s) (!strcmp(argv[ac], (s)))
 #define MAX_PLANES 500
-#define LOG_FILE "planes2.log"
+#define LOG_FILE "planes.log"
 #define t 1
 
 // given sleep function.
@@ -63,7 +63,7 @@ void log_header(){
         fprintf(stderr, "cannot open log file\n");
     }
     
-    fprintf(file, "Plane ID    Status    Request Time   Runway Time   Turnaround Time\n------------------------------------------------------------------\n");
+    fprintf(file, "Plane ID     Status   Request Time  Runway Time  Turnaround Time\n------------------------------------------------------------------\n");
     fclose(file);
 }
 
@@ -244,26 +244,23 @@ void *air_control()
 {   
     // wait for signal from the first plane.
     pthread_cond_wait(&runway_cond, &start_mutex);
-    int waiting_d, waiting_l;
     time_t current_time = time(NULL);
     while(current_time < end_time)
     {   
         // acquire lock to update queue (dequeue)
         pthread_mutex_lock(&runway_mutex);
         Plane plane; // plane to be dequeued
-        // waiting time of the top plane in departing queue.
-        //waiting_d = (departing->size > 0) ? (int)(current_time - top(departing).arrival_time) : 0;
-        //waiting_l = (landing->size > 0) ? (int)(current_time - top(landing).arrival_time) : 0;
+        
         time_t printing = time(NULL); // current time for log, called for being precise.
         if(emergency->size > 0){ // if there is a plane in emergency queue, give priority.
             plane = dequeue(emergency);
             log(plane.ID, "E", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
         } else {
-            // if less than 5 departing planes and waiting less than 10 seconds or more than 10 landing planes
+            // if landing queue size is larger than departing queue size, then pop from landing queue.
             if((landing->size >= departing->size) && (landing->size != 0)){
                 plane = dequeue(landing);
                 log(plane.ID, "L", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
-            // if there is no landing plane
+            // Otherwise, pop from departing queue.
             } else if((departing->size > landing->size) && (departing->size != 0)){
                 plane = dequeue(departing);
                 log(plane.ID, "D", (int)(plane.arrival_time - start_time), (int)(printing - start_time), (int)(printing - plane.arrival_time));
@@ -355,15 +352,6 @@ int main(int argc, char* argv[])
         float r = (float)rand()/RAND_MAX;
         int time_passed = (int)(current_time - start_time);
         
-        // start printing the queues on console
-        if(time_passed >= print){
-            printf("At %d sec:\nlanding: ", time_passed);
-            print_queue(landing);
-            printf("\n");
-            printf("departing: ");
-            print_queue(departing);
-            printf("\n");
-        }
         // check if the time for emergency plane comes.
         if(time_passed % 40 == 0 && time_passed > 0)
         {   
@@ -385,6 +373,17 @@ int main(int argc, char* argv[])
                 plane_id++;
             }
         }
+
+        // start printing the queues on console
+        if(time_passed >= print){
+            printf("At %d sec:\nlanding: ", time_passed);
+            print_queue(landing);
+            printf("\n");
+            printf("departing: ");
+            print_queue(departing);
+            printf("\n");
+        }
+
         // wait for t seconds to continue
         pthread_sleep(t);
         current_time = time(NULL);
@@ -404,6 +403,5 @@ int main(int argc, char* argv[])
     free(departing);
     free(landing);
     free(emergency);
-
     return 0;
 }
