@@ -27,6 +27,10 @@
 
 > landing_func(), departing_func(), air_control()
 
+## Tested command for the results
+
+> ./out -p 0.5 -s 100 -seed 12345 -n 10
+
 ## Implementation
 
 All parts are working fine, However, the global Plane array all_planes is initialized with a constant size, MAX_PLANES macro variable. If you set the simulation time more than 250, please update that variable to avoid any segmentation fault.
